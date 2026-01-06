@@ -1,0 +1,5 @@
+Django>=5.2,<6.0
+pandas>=2.3
+geopandas>=1.1
+openai>=0.28
+gunicorn>=21.0

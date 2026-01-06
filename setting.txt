@@ -1,0 +1,25 @@
+super_user
+ziri.group24@gmail.com
+username: rita
+pw: johann65
+
+
+
+python manage.py runserver
+http://127.0.0.1:8000/beta-access/?code=SCHEMA-BETA-2025
+
+
+Add beta access code
+
+Add rate limiting
+
+Remove DEBUG
+
+Deploy to Render
+
+Invite 10–20 users
+
+Watch failures, not features
+Add beta usage logging
+3️⃣ Add expiry to beta sessions
+4️⃣ Add invite-only single-use codes

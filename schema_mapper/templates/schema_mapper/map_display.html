@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Schema Mapper - Alignment</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<style>
+/* === BODY & HEADER/FOOTER === */
+html, body { height: 100%; margin: 0; font-family: "Inter", sans-serif; background-color: #f5f7fa; display: flex; flex-direction: column; }
+header, footer { text-align:center; position:relative; color:#fff; }
+header { background: linear-gradient(90deg,#005b96,#0077c8); padding:1rem; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+header h2 { font-weight:700; margin-bottom:0.2rem; }
+header small { font-size:0.9rem; font-weight:400; letter-spacing:0.5px; }
+.header-home { position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:white; font-size:1.5rem; cursor:pointer; text-decoration:none; transition:color 0.3s; }
+.header-home:hover { color:#ffdd57; }
+footer { background-color:#005b96; padding:0.5rem 0; font-size:0.85rem; }
+
+/* === MAIN CONTAINER === */
+.container-main { display:flex; flex-direction:column; flex: 1; padding:1.5rem 2rem; max-width:1300px; margin:0 auto; }
+h3,h5 { color:#005b96; margin-bottom:1rem; font-weight:600; }
+.flex-container { display:flex; gap:2rem; align-items:flex-start; position:relative; }
+
+/* === LEFT ICONS === */
+.left-icons { display:flex; flex-direction:column; gap:0.85rem; position:absolute; left:0; top:0; }
+.left-icons button, .left-icons a { width:38px; height:38px; border-radius:8px; border:none; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; background:#005b96; color:#fff; transition:all 0.2s; position:relative; }
+.left-icons button:hover, .left-icons a:hover { background:#004477; }
+.left-icons button[data-tooltip]:hover::after, .left-icons a[data-tooltip]:hover::after {
+    content: attr(data-tooltip); position:absolute; left:60px; top:50%; transform:translateY(-50%); background:#333; color:#fff; padding:3px 8px; border-radius:4px; font-size:0.8rem; white-space:nowrap;
+}
+
+/* === TABLE LIST PANEL === */
+.table-list-panel { position:absolute; background:#fff; border:1px solid #ddd; border-radius:8px; width:200px; display:none; flex-direction:column; gap:0.5rem; padding:0.5rem; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:all 0.3s ease; z-index:1000; max-height:400px; overflow:auto; }
+
+/* === WORKSPACE & SCHEMA === */
+.workspace { display: flex; gap: 1rem; margin-left:70px; width: 100%; flex: 1; overflow: hidden; }
+.schema-container { flex:1; min-width:300px; transition:flex 0.3s ease; }
+.table-wrapper { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 200px); border-radius:12px; border:1px solid #ddd; box-shadow:0 4px 12px rgba(0,0,0,0.08); background:#fff; padding:0.5rem; }
+thead th { text-align:center; vertical-align:middle; font-weight:600; color:#000; background-color:rgba(0,91,150,0.15); }
+tbody td { text-align:center; }
+.checkbox-center { text-align:center; }
+.alignment-table { min-width:700px; }
+
+/* === PREVIEW PANEL === */
+.preview-container { width:45%; max-width:50%; background:#fff; border-left:1px solid #ddd; border-radius:8px 0 0 8px; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; padding:0.5rem; position:relative; transition: width 0.4s ease, padding 0.4s ease; }
+.preview-container.collapsed { width:0; padding:0; overflow:hidden; }
+#togglePreviewBtn { position:absolute; top:50%; left:-10px; transform:translateY(-50%); background:#ccc; border:none; width:20px; height:40px; cursor:pointer; border-radius:4px; transition:transform 0.3s ease; }
+#togglePreviewBtn.collapsed { transform:translateY(-50%) rotate(180deg); }
+.preview-card { background:#fff; border:1px solid #ddd; border-radius:10px; padding:1rem; box-shadow:-2px 0 10px rgba(0,0,0,0.15); position:relative; }
+.preview-card h5 { font-weight:600; margin-bottom:.5rem; }
+.preview-card .close-card { position:absolute; top:8px; right:10px; background:transparent; border:none; font-size:1rem; color:#cc0000; cursor:pointer; }
+
+/* === DRAG HANDLE === */
+.drag-handle { width:6px; cursor:ew-resize; background:rgba(0,0,0,0.1); border-radius:3px; position:relative; transition:left 0.3s ease; }
+
+/* === MERGE PREVIEW OVERLAY === */
+#mergePreviewOverlay { position:fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); display:flex; justify-content:center; align-items:center; z-index:2000; display:none; }
+#mergePreviewContent { background:#fff; padding:1rem; border-radius:10px; max-height:80vh; max-width:90vw; overflow:auto; box-shadow:0 4px 20px rgba(0,0,0,0.3); position:relative; }
+#mergePreviewContent h5 { margin-top:0; margin-bottom:0.5rem; color:#005b96; }
+#closeMergePreview { position:absolute; top:8px; right:10px; background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#cc0000; }
+
+/* === SCRIPT HELPER OVERLAY === */
+.script-helper-overlay {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.2);
+    display:flex; justify-content:center; align-items:center;
+    z-index:3000; display:none;
+}
+.script-helper-window {
+    width:600px; max-width:90%;
+    background:#f9f9f9; border-radius:10px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    display:flex; flex-direction:column;
+    position:relative; color:#333; font-family: 'Fira Code', monospace;
+}
+.script-header {
+    padding:0.75rem 1rem; font-weight:600; font-size:1rem; cursor:move;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid #ccc; background:#e2e2e2; border-radius:10px 10px 0 0;
+}
+.script-tabs { display:flex; border-bottom:1px solid #ccc; background:#e2e2e2; flex-wrap:wrap; }
+.script-tab { flex:1; padding:0.5rem; cursor:pointer; text-align:center; background:#e2e2e2; border:none; outline:none; color:#555; transition:0.2s; }
+.script-tab.active { background:#005b96; color:#fff; font-weight:600; }
+.script-tab:hover { background:#cce0ff; color:#000; }
+
+.script-content {
+    overflow: auto;
+    max-height: 400px;
+    padding: 1rem;
+
+    /* Professional coding look */
+    background: #fdfdfd;
+    border-top: 1px solid #ccc;
+    border-radius: 0 0 10px 10px;
+
+    /* Code aesthetics */
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.80rem;   /* smaller and cleaner */
+    line-height: 1.45;
+    white-space: pre;
+    color: #2a2a2a;
+
+    /* Inner shadow for depth */
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.06);
+
+    /* Smooth scrolling */
+    scrollbar-width: thin;
+}
+
+/* Optional: nicer scrollbar for Chrome/Edge */
+.script-content::-webkit-scrollbar {
+    width: 6px;
+}
+.script-content::-webkit-scrollbar-thumb {
+    background: #b8b8b8;
+    border-radius: 6px;
+}
+.script-content::-webkit-scrollbar-thumb:hover {
+    background: #9a9a9a;
+}
+
+
+.btn-icon { border:none; background:transparent; font-size:1.1rem; cursor:pointer; color:#005b96; margin-right:0.5rem; position:relative; transition: color 0.2s; }
+.btn-icon:hover { color:#0077c8; }
+.copied-tooltip { position:absolute; top:-25px; right:0; background:#005b96; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem; opacity:0; pointer-events:none; transform:translateY(0); transition: opacity 0.3s, transform 0.3s; }
+.copied-tooltip.show { opacity:1; transform:translateY(-5px); }
+</style>
+</head>
+<body>
+<header>
+    <a href="/" class="header-home"><i class="fas fa-home"></i></a>
+    <h2>Schema Mapper</h2>
+    <small>Intelligent Data Alignment</small>
+</header>
+
+<div class="container-main">
+    {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    <div class="flex-container">
+        <!-- Left Icons -->
+        <div class="left-icons">
+            {% if file_names %}
+            <button id="tableViewBtn" data-tooltip="View Uploaded Tables"><i class="fas fa-table"></i></button>
+            {% endif %}
+            <button id="schemaScriptBtn" data-tooltip="Schema Script"><i class="fas fa-file-code"></i></button>
+            <button id="saveCsvBtn" data-tooltip="Save Schema CSV"><i class="fas fa-file-csv"></i></button>
+            <button id="renameColBtn" data-tooltip="Rename Column"><i class="fas fa-edit"></i></button>
+            <button id="previewMergeBtn" data-tooltip="Preview Merged Tables"><i class="fas fa-eye"></i></button>
+            <button id="mergeBtn" data-tooltip="Merge Tables"><i class="fas fa-object-group"></i></button>
+
+            <button id="aiAssistBtn" data-tooltip="AI Schema Assist">
+                <i class="fas fa-robot"></i>
+            </button>
+
+        </div>
+
+        <!-- Workspace -->
+        <div class="workspace">
+            <div class="schema-container">
+                <div class="table-wrapper">
+
+                    <form id="schemaForm" method="post" action="{% url 'save_mapping' %}">
+                        {% csrf_token %}
+                        <table class="table table-bordered table-hover alignment-table">
+                            <thead>
+                                <tr>
+                                    <th>Column Name</th>
+                                    <th>Type File 1</th>
+                                    <th class="checkbox-center"><input type="checkbox" id="keep_all" checked> Keep?</th>
+                                    <th class="checkbox-center"><input type="checkbox" id="match_all" checked> Match?</th>
+                                    <th>Secondary Column</th>
+                                    <th>Type File 2</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if master_schema %}
+                                    {% for master_col in master_schema %}
+                                    <tr>
+                                        <td>{{ master_col.name }}</td>
+                                        <td>{{ master_col.dtype }}</td>
+                                        <td class="checkbox-center"><input type="checkbox" class="keep_master" name="keep_{{ master_col.name }}" checked></td>
+                                        <td class="checkbox-center"><input type="checkbox" class="match_column" name="match_{{ master_col.name }}" checked></td>
+                                        <td>
+                                            <select name="secondary_col_{{ master_col.name }}">
+                                                {% for sec_col in secondary_schema %}
+                                                <option value="{{ sec_col.name }}" {% if sec_col.name == master_col.name %}selected{% endif %}>{{ sec_col.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="secondary_type_{{ master_col.name }}">
+                                                {% for sec_col in secondary_schema %}
+                                                <option value="{{ sec_col.dtype }}" {% if sec_col.dtype == master_col.dtype %}selected{% endif %}>{{ sec_col.dtype }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% elif combined_schema %}
+                                    {% for col in combined_schema %}
+                                    <tr>
+                                        <td>{{ col.name }}</td>
+                                        <td>{{ col.type_file1|default:"-" }}</td>
+                                        <td class="checkbox-center"><input type="checkbox" class="keep_master" name="keep_{{ col.name }}" checked></td>
+                                        <td class="checkbox-center"><input type="checkbox" class="match_column" name="match_{{ col.name }}" checked></td>
+                                        <td>
+                                            <select name="secondary_col_{{ col.name }}">
+                                                {% for sec_col in combined_schema %}
+                                                <option value="{{ sec_col.name }}" {% if sec_col.name == col.name %}selected{% endif %}>{{ sec_col.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="secondary_type_{{ col.name }}">
+                                                <option value="object" {% if col.type_file1|default:"" == "object" %}selected{% endif %}>object</option>
+                                                <option value="int64" {% if col.type_file1|default:"" == "int64" %}selected{% endif %}>int64</option>
+                                                <option value="float64" {% if col.type_file1|default:"" == "float64" %}selected{% endif %}>float64</option>
+                                                <option value="bool" {% if col.type_file1|default:"" == "bool" %}selected{% endif %}>bool</option>
+                                                <option value="datetime64[ns]" {% if col.type_file1|default:"" == "datetime64[ns]" %}selected{% endif %}>datetime64</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </form>
+                </div>
+            </div>
+
+            <div id="dragHandle" class="drag-handle">
+                <button id="togglePreviewBtn" class="collapsed">&#x25C0;</button>
+            </div>
+
+            <div id="previewContainer" class="preview-container collapsed">
+                <button id="closePreviewBtn" style="position:absolute; top:5px; right:5px; border:none; background:transparent; font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+        </div>
+    </div>
+
+    {% if file_names %}
+    <div id="tableListPanel" class="table-list-panel"></div>
+    {% endif %}
+</div>
+
+<!-- Merge Preview Overlay -->
+<div id="mergePreviewOverlay">
+    <div id="mergePreviewContent">
+        <button id="closeMergePreview">&times;</button>
+        <h5>Merged Table Preview</h5>
+        <div id="mergePreviewTableWrapper"></div>
+    </div>
+</div>
+
+
+<!-- Script Helper Overlay -->
+<div id="scriptHelperOverlay" class="script-helper-overlay">
+    <div id="scriptHelperWindow" class="script-helper-window">
+        <div class="script-header">
+            Script Helper
+            <div>
+                <button class="btn-icon" id="copyScriptBtn" title="Copy Script"><i class="fas fa-copy"></i></button>
+                <button id="closeScriptHelper" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer;">&times;</button>
+            </div>
+        </div>
+        <div class="script-tabs">
+            <button class="script-tab active" data-lang="python">Python</button>
+            <button class="script-tab" data-lang="julia">Julia</button>
+            <button class="script-tab" data-lang="r">R</button>
+            <button class="script-tab" data-lang="javascript">JavaScript</button>
+            <button class="script-tab" data-lang="sql">SQL</button>
+            <button class="script-tab" data-lang="powershell">PowerShell</button>
+            <button class="script-tab" data-lang="duckdb">DuckDB</button>
+            <button class="script-tab" data-lang="polars">Polars</button>
+        </div>
+        <div class="script-content" id="scriptContent"></div>
+        <span id="copyTooltip" class="copied-tooltip">Copied!</span>
+    </div>
+</div>
+
+<!-- Rename Columns Modal -->
+<div id="renameModal" class="script-helper-overlay">
+    <div class="script-helper-window" style="width:500px;">
+        <div class="script-header">
+            Rename Columns
+            <button id="closeRenameModal" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer;">&times;</button>
+        </div>
+        <div class="script-content" style="max-height:400px;">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Master Column</th>
+                        <th>New Name</th>
+                    </tr>
+                </thead>
+                <tbody id="renameTableBody">
+                    <!-- dynamically filled -->
+                </tbody>
+            </table>
+        </div>
+        <div style="text-align:right; padding:0.5rem;">
+            <button id="saveRenames" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- AI ASSIST OVERLAY -->
+<div id="aiOverlay" style="
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 4000;
+">
+    <div style="
+        width: 600px;
+        max-width: 90%;
+        background: #fff;
+        border-radius: 10px;
+        padding: 1rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        position: relative;
+    ">
+        <!-- CLOSE BUTTON -->
+        <button id="closeAI" style="
+            position:absolute;
+            right:10px;
+            top:10px;
+            font-size:1.2rem;
+            border:none;
+            background:transparent;
+            cursor:pointer;
+        ">&times;</button>
+
+        <h4 style="color:#005b96; font-weight:600;">AI Schema Assist</h4>
+
+        <p style="font-size:0.9rem;">AI will analyze your schema structure and provide recommendations.</p>
+
+        <button id="runAI" class="btn btn-primary" style="margin-bottom:1rem;">
+            Run AI Analysis
+        </button>
+
+        <div id="aiResults" style="
+            max-height:300px;
+            overflow:auto;
+            border:1px solid #ddd;
+            padding:0.75rem;
+            border-radius:8px;
+        ">
+            <!-- AI output will appear here -->
+        </div>
+    </div>
+</div>
+
+
+<footer>© 2025 Schema Mapper • Built for intelligent data alignment</footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+
+// --- CHECKBOX HANDLING ---
+const keepAll=document.getElementById('keep_all');
+const matchAll=document.getElementById('match_all');
+const keepBoxes=document.querySelectorAll('.keep_master');
+const matchBoxes=document.querySelectorAll('.match_column');
+if(keepAll) keepAll.addEventListener('change', ()=>keepBoxes.forEach(cb=>cb.checked=keepAll.checked));
+if(matchAll) matchAll.addEventListener('change', ()=>matchBoxes.forEach(cb=>cb.checked=matchAll.checked));
+
+// --- ELEMENTS ---
+const tableViewBtn=document.getElementById('tableViewBtn');
+const saveCsvBtn=document.getElementById('saveCsvBtn');
+const mergeBtn=document.getElementById('mergeBtn');
+const previewMergeBtn=document.getElementById('previewMergeBtn');
+const tableListPanel=document.getElementById('tableListPanel');
+const previewContainer=document.getElementById('previewContainer');
+const togglePreviewBtn=document.getElementById('togglePreviewBtn');
+const closePreviewBtn=document.getElementById('closePreviewBtn');
+const dragHandle=document.getElementById('dragHandle');
+const schemaContainer=document.querySelector('.schema-container');
+
+const mergePreviewOverlay = document.getElementById('mergePreviewOverlay');
+const mergePreviewTableWrapper = document.getElementById('mergePreviewTableWrapper');
+const closeMergePreview = document.getElementById('closeMergePreview');
+
+const uploadedTables = {% if file_names %} {{ file_names|safe }} {% else %} [] {% endif %};
+const previews = {% if table_previews %} {{ table_previews|safe }} {% else %} {} {% endif %};
+
+// --- TABLE VIEW ---
+if(tableViewBtn && uploadedTables.length>0){
+    tableViewBtn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        tableListPanel.innerHTML='';
+        uploadedTables.forEach(fname=>{
+            const btn=document.createElement('button');
+            btn.textContent=fname;
+            btn.className='btn btn-outline-primary';
+            btn.style.width='100%';
+            btn.addEventListener('click', ()=>{
+                if(previewContainer.classList.contains('collapsed')){
+                    previewContainer.classList.remove('collapsed');
+                    previewContainer.style.width='45%';
+                    schemaContainer.style.flex='0 0 55%';
+                    togglePreviewBtn.classList.remove('collapsed');
+                    togglePreviewBtn.innerHTML='&#x25B6;';
+                }
+                const existing = document.getElementById("preview_"+fname);
+                if(existing) existing.remove();
+                const card=document.createElement("div");
+                card.className="preview-card";
+                card.id="preview_"+fname;
+                card.innerHTML=`<button class="close-card">&times;</button><h5>${fname}</h5><div style="overflow-x:auto;">${previews[fname]||"<p>No preview available</p>"}</div>`;
+                card.querySelector(".close-card").addEventListener("click", ()=>{
+                    card.remove();
+                    if(previewContainer.children.length <= 1) {
+                        previewContainer.classList.add('collapsed');
+                        previewContainer.style.width='0';
+                        schemaContainer.style.flex='1';
+                        togglePreviewBtn.classList.add('collapsed');
+                        togglePreviewBtn.innerHTML='&#x25C0;';
+                    }
+                });
+                previewContainer.appendChild(card);
+                previewContainer.scrollTop=previewContainer.scrollHeight;
+                tableListPanel.style.display='none';
+            });
+            tableListPanel.appendChild(btn);
+        });
+        const rect=tableViewBtn.getBoundingClientRect();
+        tableListPanel.style.top=rect.top+'px';
+        tableListPanel.style.left=rect.right+10+'px';
+        tableListPanel.style.display='flex';
+        tableListPanel.style.flexDirection='column';
+    });
+}
+document.addEventListener('click', ()=>{ if(tableListPanel) tableListPanel.style.display='none'; });
+
+// --- TOGGLE PREVIEW PANEL ---
+if(togglePreviewBtn){
+    togglePreviewBtn.addEventListener('click', ()=>{
+        if(previewContainer.classList.contains('collapsed')){
+            previewContainer.classList.remove('collapsed');
+            previewContainer.style.width='45%';
+            schemaContainer.style.flex='0 0 55%';
+            togglePreviewBtn.classList.remove('collapsed');
+            togglePreviewBtn.innerHTML='&#x25B6;';
+        } else {
+            previewContainer.classList.add('collapsed');
+            previewContainer.style.width='0';
+            schemaContainer.style.flex='1';
+            togglePreviewBtn.classList.add('collapsed');
+            togglePreviewBtn.innerHTML='&#x25C0;';
+            if(tableListPanel) tableListPanel.style.display='none';
+        }
+    });
+}
+if(closePreviewBtn){
+    closePreviewBtn.addEventListener('click', ()=>{
+        previewContainer.classList.add('collapsed');
+        previewContainer.style.width='0';
+        schemaContainer.style.flex='1';
+        togglePreviewBtn.classList.add('collapsed');
+        togglePreviewBtn.innerHTML='&#x25C0;';
+    });
+}
+
+// --- DRAG HANDLE ---
+if(dragHandle){
+    let isDragging=false;
+    dragHandle.addEventListener('mousedown', ()=>{isDragging=true;document.body.style.cursor='ew-resize';});
+    document.addEventListener('mousemove', e=>{
+        if(!isDragging) return;
+        if(previewContainer.classList.contains('collapsed')) return;
+        const workspace=document.querySelector('.workspace');
+        const workspaceRect=workspace.getBoundingClientRect();
+        const newPreviewWidth=workspaceRect.right-e.clientX;
+        if(newPreviewWidth<200) return;
+        if(newPreviewWidth>workspaceRect.width-200) return;
+        previewContainer.style.width=newPreviewWidth+'px';
+        schemaContainer.style.flex=`0 0 ${workspaceRect.width-newPreviewWidth-dragHandle.offsetWidth}px`;
+    });
+    document.addEventListener('mouseup', ()=>{ isDragging=false; document.body.style.cursor='default'; });
+}
+
+// --- SAVE CSV ---
+if(saveCsvBtn) saveCsvBtn.addEventListener('click', ()=> {
+    const form=document.getElementById('schemaForm');
+    const input=document.createElement('input');
+    input.type='hidden'; input.name='save_csv'; input.value='1';
+    form.appendChild(input);
+    form.submit();
+    input.remove();
+});
+
+// --- MERGE TABLES ---
+if(mergeBtn) mergeBtn.addEventListener('click', ()=>{
+    const form=document.getElementById('schemaForm');
+    const input=document.createElement('input');
+    input.type='hidden'; input.name='merge_tables'; input.value='1';
+    form.appendChild(input);
+    form.submit();
+    input.remove();
+});
+
+// --- PREVIEW MERGED TABLE ---
+if(previewMergeBtn){
+    previewMergeBtn.addEventListener('click', async ()=>{
+        const formData = new FormData(document.getElementById('schemaForm'));
+        formData.append('preview_merge','1');
+        const response = await fetch("{% url 'save_mapping' %}", { method:'POST', body: formData });
+        const data = await response.json();
+
+        // Get renamed columns from hidden inputs
+        const renamedCols = {};
+        document.querySelectorAll('table.alignment-table tbody tr').forEach((tr, idx)=>{
+            const hidden = tr.querySelector(`input[name="final_name_${idx}"]`);
+            if(hidden) renamedCols[idx] = hidden.value;
+        });
+
+        let html = '<table class="table table-bordered table-hover"><thead><tr>';
+        if(data.length>0){
+            Object.keys(data[0]).forEach((k, i)=>{
+                // Use renamed column if exists
+                html += `<th>${renamedCols[i]||k}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            data.forEach(row=>{
+                html+='<tr>';
+                Object.values(row).forEach(v=>html+=`<td>${v}</td>`);
+                html+='</tr>';
+            });
+            html+='</tbody></table>';
+        } else { html="<p>No merged data to preview.</p>"; }
+        mergePreviewTableWrapper.innerHTML=html;
+        mergePreviewOverlay.style.display='flex';
+    });
+}
+
+closeMergePreview.addEventListener('click', ()=>mergePreviewOverlay.style.display='none');
+
+// --- Build mapping for script generation ---
+function getColumnMapping() {
+    const mapping = [];
+    document.querySelectorAll('table.alignment-table tbody tr').forEach((tr, idx)=>{
+        const masterCol = tr.cells[0].textContent.trim();
+        const hiddenInput = tr.querySelector(`input[name="final_name_${idx}"]`);
+        const finalName = hiddenInput ? hiddenInput.value.trim() : masterCol;
+        const secSelect = tr.querySelector(`select[name^="secondary_col_"]`);
+        const secondaryCol = secSelect ? secSelect.value.trim() : masterCol;
+        mapping.push({ master: masterCol, final: finalName, secondary: secondaryCol });
+    });
+    return mapping;
+}
+
+
+// --- SCRIPT HELPER ---
+const scriptBtn = document.getElementById('schemaScriptBtn');
+const scriptHelperOverlay = document.getElementById('scriptHelperOverlay');
+const scriptHelperWindow = document.getElementById('scriptHelperWindow');
+const closeScriptHelper = document.getElementById('closeScriptHelper');
+const scriptTabs = document.querySelectorAll('.script-tab');
+const scriptContent = document.getElementById('scriptContent');
+const copyBtn = document.getElementById('copyScriptBtn');
+const copyTooltip = document.getElementById('copyTooltip');
+
+const exampleScripts = {
+    python: `# Python Example\nimport pandas as pd\nmaster = pd.read_csv('master.csv')\nsecondary = pd.read_csv('secondary.csv')\nmerged = pd.merge(master, secondary, on='ColumnName', how='outer')\nmerged.to_csv('merged_output.csv', index=False)`,
+    julia: `# Julia Example\nusing CSV, DataFrames\nmaster = CSV.read("master.csv", DataFrame)\nsecondary = CSV.read("secondary.csv", DataFrame)\nmerged = join(master, secondary, on=:ColumnName, kind=:outer)\nCSV.write("merged_output.csv", merged)`,
+    r: `# R Example\nmaster <- read.csv("master.csv")\nsecondary <- read.csv("secondary.csv")\nmerged <- merge(master, secondary, by="ColumnName", all=TRUE)\nwrite.csv(merged, "merged_output.csv", row.names=FALSE)`,
+    javascript: `// JavaScript Example (Node.js)\nconst fs = require('fs');\nconst Papa = require('papaparse');\nlet master = Papa.parse(fs.readFileSync('master.csv', 'utf8'), {header:true});\nlet secondary = Papa.parse(fs.readFileSync('secondary.csv','utf8'), {header:true});\n// merging logic here`,
+    sql: `-- SQL Example\nSELECT * FROM master\nLEFT JOIN secondary ON master.ColumnName = secondary.ColumnName;`,
+    powershell: `# PowerShell Example\n$master=Import-Csv 'master.csv'\n$secondary=Import-Csv 'secondary.csv'\n$merged = $master | ForEach-Object { ... }\n$merged | Export-Csv 'merged_output.csv' -NoTypeInformation`,
+    duckdb: `-- DuckDB Example\nCREATE TABLE master AS SELECT * FROM read_csv_auto('master.csv');\nCREATE TABLE secondary AS SELECT * FROM read_csv_auto('secondary.csv');\nSELECT * FROM master LEFT JOIN secondary USING(ColumnName);`,
+    polars: `# Polars Example (Python)\nimport polars as pl\nmaster=pl.read_csv('master.csv')\nsecondary=pl.read_csv('secondary.csv')\nmerged=master.join(secondary, on='ColumnName', how='outer')\nmerged.write_csv('merged_output.csv')`
+};
+
+// Open Script Helper
+if(scriptBtn){
+    scriptBtn.addEventListener('click', ()=>{
+        scriptHelperOverlay.style.display='flex';
+        const activeTab = document.querySelector('.script-tab.active');
+        const lang = activeTab ? activeTab.dataset.lang : 'python';
+        scriptContent.textContent = exampleScripts[lang];
+    });
+}
+
+// Switch Tabs
+scriptTabs.forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+        scriptTabs.forEach(t=>t.classList.remove('active'));
+        tab.classList.add('active');
+        const lang = tab.dataset.lang;
+        scriptContent.textContent = exampleScripts[lang] || "# Example not available";
+    });
+});
+
+// Copy Script
+if(copyBtn){
+    copyBtn.addEventListener('click', ()=>{
+        navigator.clipboard.writeText(scriptContent.textContent).then(()=>{
+            copyTooltip.classList.add('show');
+            setTimeout(()=>copyTooltip.classList.remove('show'), 1500);
+        });
+    });
+}
+
+// Close Script Helper
+if(closeScriptHelper){
+    closeScriptHelper.addEventListener('click', ()=>scriptHelperOverlay.style.display='none');
+}
+
+// Draggable Script Window
+let isDragging=false, offsetX=0, offsetY=0;
+const header = document.querySelector('.script-header');
+header.addEventListener('mousedown', e=>{
+    isDragging=true;
+    offsetX = e.clientX - scriptHelperWindow.offsetLeft;
+    offsetY = e.clientY - scriptHelperWindow.offsetTop;
+    document.body.style.cursor='move';
+});
+document.addEventListener('mousemove', e=>{
+    if(isDragging){
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+        x = Math.max(0, Math.min(window.innerWidth - scriptHelperWindow.offsetWidth, x));
+        y = Math.max(0, Math.min(window.innerHeight - scriptHelperWindow.offsetHeight, y));
+        scriptHelperWindow.style.left=x+'px';
+        scriptHelperWindow.style.top=y+'px';
+    }
+});
+document.addEventListener('mouseup', ()=>{ isDragging=false; document.body.style.cursor='default'; });
+
+// --- RENAME COLUMN MODAL ---
+const renameColBtn = document.getElementById('renameColBtn');
+const renameModal = document.getElementById('renameModal');
+const closeRenameModal = document.getElementById('closeRenameModal');
+const renameTableBody = document.getElementById('renameTableBody');
+const saveRenames = document.getElementById('saveRenames');
+
+renameColBtn.addEventListener('click', ()=>{
+    // Clear old rows
+    renameTableBody.innerHTML = '';
+    // Loop over master table rows
+    document.querySelectorAll('table.alignment-table tbody tr').forEach((tr, idx)=>{
+        const masterCol = tr.cells[0].textContent.trim();
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${masterCol}</td>
+            <td><input type="text" class="form-control new-name-input" value="${masterCol}"></td>
+        `;
+        renameTableBody.appendChild(row);
+    });
+    renameModal.style.display = 'flex';
+});
+
+closeRenameModal.addEventListener('click', ()=>renameModal.style.display='none');
+
+saveRenames.addEventListener('click', ()=>{
+    const rows = renameTableBody.querySelectorAll('tr');
+    rows.forEach((row, idx)=>{
+        const newName = row.querySelector('.new-name-input').value.trim();
+        const masterRow = document.querySelectorAll('table.alignment-table tbody tr')[idx];
+        masterRow.cells[0].textContent = newName;
+
+        // Store new name in hidden input for form submission
+        let hiddenInput = masterRow.querySelector(`input[name="final_name_${idx}"]`);
+        if(!hiddenInput){
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = `final_name_${idx}`;
+            masterRow.appendChild(hiddenInput);
+        }
+        hiddenInput.value = newName;
+    });
+    renameModal.style.display = 'none';
+});
+
+// --- AI ASSIST LOGIC ---
+const aiAssistBtn = document.getElementById("aiAssistBtn");
+const aiOverlay = document.getElementById("aiOverlay");
+const closeAI = document.getElementById("closeAI");
+const runAI = document.getElementById("runAI");
+const aiResults = document.getElementById("aiResults");
+
+// Open overlay
+aiAssistBtn.addEventListener("click", () => {
+    aiOverlay.style.display = "flex";
+    aiResults.innerHTML = ""; // clear window
+});
+
+// Close overlay
+closeAI.addEventListener("click", () => {
+    aiOverlay.style.display = "none";
+});
+
+// Temporary AI action
+runAI.addEventListener("click", () => {
+    alert("AI Schema Analysis is a work in progress… coming soon!");
+});
+
+
+
+});
+</script>
+
+
+</body>
+</html>
+

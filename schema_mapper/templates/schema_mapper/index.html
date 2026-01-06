@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Schema Mapper - Landing Page</title>
+
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- Custom Styles -->
+  <style>
+    /* Reset & body */
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background-color: #005b96;
+      color: white;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      position: relative;
+      text-align: center;
+    }
+    .header-home {
+      position: absolute;
+      left: 2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 1.6rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .header-home:hover { color: #ffdd57; }
+
+    header h3 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.8rem;
+    }
+    header small {
+      display: block;
+      margin-top: 0.3rem;
+      font-weight: 400;
+      color: #e0f0ff;
+    }
+
+    /* Footer */
+    footer {
+      background-color: #005b96;
+      color: white;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      margin-top: auto;
+      text-align: center;
+    }
+
+    /* Headings */
+    h2 {
+      font-weight: 700;
+      color: #005b96;
+      margin-bottom: 2rem;
+    }
+    h4 {
+      font-weight: 600;
+      color: #005b96;
+      margin-bottom: 1rem;
+    }
+
+    /* Cards */
+    .scenario-card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+      padding: 2rem 1.5rem;
+      height: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .scenario-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.15);
+    }
+
+    /* Labels & Inputs */
+    label { font-weight: 600; }
+    input.form-control {
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+    }
+    input[type="number"] {
+      max-width: 120px;
+    }
+
+    /* Buttons */
+    .btn {
+      border-radius: 8px;
+      font-weight: 600;
+      padding: 0.55rem 0;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover {
+      background-color: #004075;
+    }
+    .btn-success:hover {
+      background-color: #2e7d32;
+    }
+
+    /* File-row styling */
+    .file-row {
+      padding: 0.6rem 1rem;
+      background: #f1f4f7;
+      border-radius: 8px;
+      margin-bottom: 0.7rem;
+      position: relative;
+    }
+    .remove-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      padding: 2px 6px !important;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 991px) {
+      .scenario-card {
+        padding: 1.5rem 1rem;
+      }
+      header, footer {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="header-home" title="Home"><i class="bi bi-house-fill"></i></a>
+  <h3>Schema Mapper</h3>
+  <small>Intelligent Data Alignment</small>
+</header>
+
+<div class="container py-5">
+<!--  <h2 class="text-center">Select Mapping Scenario</h2>-->
+
+  <div class="row g-4">
+
+    <!-- Scenario 1 -->
+
+    <div class="col-lg-6 col-md-12">
+      <div class="scenario-card">
+        <h4>Scenario 1: Master & Secondary Tables</h4>
+        <p>Upload one master file and a secondary file to align their schemas.</p>
+
+        <form action="/map_display/" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="master_secondary">
+
+          <!-- Master Table -->
+          <div class="mb-3 d-flex align-items-end gap-2">
+            <div class="flex-grow-1">
+              <label>Master Table:</label>
+              <input type="file" name="master" accept=".csv" class="form-control" required>
+            </div>
+            <div style="width: 120px;">
+              <label>Header Row:</label>
+              <input type="number" name="master_header_row" value="1" min="1" class="form-control">
+            </div>
+          </div>
+
+          <!-- Secondary Table -->
+          <div class="mb-3 d-flex align-items-end gap-2">
+            <div class="flex-grow-1">
+              <label>Secondary Table:</label>
+              <input type="file" name="secondary" accept=".csv" class="form-control" required>
+            </div>
+            <div style="width: 120px;">
+              <label>Header Row:</label>
+              <input type="number" name="secondary_header_row" value="1" min="1" class="form-control">
+            </div>
+          </div>
+
+          <button class="btn btn-primary w-100">Upload & Compare</button>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- Scenario 2 -->
+    <div class="col-lg-6 col-md-12">
+      <div class="scenario-card">
+        <h4>Scenario 2: Multi-File Merge</h4>
+        <p>Merge multiple CSVs into one unified schema — or upload a ZIP containing many CSVs.</p>
+
+        <form action="/map_display/" method="post" enctype="multipart/form-data" id="multiForm">
+          {% csrf_token %}
+          <input type="hidden" name="mode" value="multi_merge">
+
+          <div class="mb-3">
+            <label>Select Multiple CSV Files:</label>
+            <input id="multiCsv" type="file" name="files" accept=".csv" multiple class="form-control">
+          </div>
+
+          <div id="headerRowContainer"></div>
+
+          <hr>
+
+          <div class="mb-3">
+            <label>Or Upload ZIP:</label>
+            <input id="zipInput" type="file" name="zip_file" accept=".zip" class="form-control">
+          </div>
+
+          <button class="btn btn-success w-100">Merge Files</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>© 2025 Schema Mapper • Intelligent Data Alignment</footer>
+
+<script>
+const multiCsv = document.getElementById("multiCsv");
+const zipInput = document.getElementById("zipInput");
+const container = document.getElementById("headerRowContainer");
+
+zipInput.addEventListener("change", () => {
+    if (zipInput.files.length > 0) {
+        multiCsv.disabled = true;
+        container.innerHTML = "";
+    } else {
+        multiCsv.disabled = false;
+    }
+});
+
+multiCsv.addEventListener("change", () => {
+    container.innerHTML = "";
+    zipInput.disabled = multiCsv.files.length > 0;
+
+    [...multiCsv.files].forEach((file, idx) => {
+        const row = document.createElement("div");
+        row.className = "file-row";
+        row.innerHTML = `
+            <strong>${file.name}</strong>
+            <label class="mt-1 d-block">Header Row:</label>
+            <input type="number" class="form-control" name="header_rows" value="1" min="1">
+        `;
+        container.appendChild(row);
+    });
+});
+</script>
+
+</body>
+</html>
+
+===========
