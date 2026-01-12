@@ -180,45 +180,18 @@ def check_rate_limit(request, key, limit, window_seconds):
 
     return True, None
 
-def require_beta_access(request):
-    if not getattr(settings, "BETA_ACCESS_ENABLED", False):
-        return None
-
-    # Always allow beta access page itself
-    if request.path.startswith("/beta-access"):
-        return None
-
-    if request.session.get("beta_access_granted"):
-        return None
-
-    return render(
-        request,
-        "schema_mapper/beta_access.html",
-        status=403
-    )
 
 
 # ---------------- Views ----------------
 
 @csrf_exempt
 def index(request):
-    if getattr(settings, "BETA_ACCESS_ENABLED", False) and not request.session.get("beta_access_granted"):
-        return redirect("submit_beta_code")
     return render(request, "schema_mapper/index.html")
 
-# def index(request):
-#     gate = require_beta_access(request)
-#     if gate:
-#         return gate
-#
-#     return render(request, "schema_mapper/index.html")
 
 
 @csrf_exempt
 def map_display(request):
-    gate = require_beta_access(request)
-    if gate:
-        return gate
 
     context = {}
     if request.method != 'POST':
@@ -375,9 +348,6 @@ def map_display(request):
 
 @csrf_exempt
 def save_mapping(request):
-    gate = require_beta_access(request)
-    if gate:
-        return gate
 
     if request.method != 'POST':
         return HttpResponse("Invalid request", status=400)
@@ -507,13 +477,6 @@ def schema_ai_assist(request):
             status=429
         )
 
-    if settings.BETA_ACCESS_ENABLED and settings.BETA_AI_ONLY:
-        if not request.session.get("beta_access_granted"):
-            return JsonResponse(
-                {"error": "Beta access required"},
-                status=403
-            )
-
     try:
         body = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
@@ -539,33 +502,21 @@ def schema_ai_assist(request):
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {
-                    "role": "system",
-                    "content": "You are a precise, concise data engineering assistant."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
+                {"role": "system", "content": "You are a precise, concise data engineering assistant."},
+                {"role": "user", "content": prompt}
             ],
             temperature=0.2,
             max_tokens=700
         )
-
         output = response.choices[0].message.content
-
     except Exception as e:
         return JsonResponse(
             {"error": "AI service unavailable", "details": str(e)},
             status=500
         )
 
-    return JsonResponse(
-        {
-            "status": "success",
-            "analysis": output
-        }
-    )
+    return JsonResponse({"status": "success", "analysis": output})
+
 
 def extract_and_validate_zip(zip_path, extract_to):
 
@@ -593,28 +544,7 @@ def extract_and_validate_zip(zip_path, extract_to):
 
     return extracted_files
 
-@csrf_exempt
-def submit_beta_code(request):
-    if request.method != "POST":
-        return render(request, "schema_mapper/beta_access.html")
 
-    code = request.POST.get("beta_code", "").strip()
-    valid_codes = getattr(settings, "BETA_ACCESS_CODES", set())
-
-    if code in valid_codes:
-        # Grant access
-        request.session["beta_access_granted"] = True
-        request.session.modified = True
-
-        # IMPORTANT: redirect using URL path, not name
-        return redirect("/")
-
-    return render(
-        request,
-        "schema_mapper/beta_access.html",
-        {"error": "Invalid beta access code"},
-        status=403
-    )
 
 # import os
 # import json
