@@ -184,18 +184,18 @@ def require_beta_access(request):
     if not getattr(settings, "BETA_ACCESS_ENABLED", False):
         return None
 
-    # Allow access to the beta submission page itself
-    if request.path == "/beta-access/":
+    # Always allow beta access page itself
+    if request.path.startswith("/beta-access"):
         return None
 
-    # If beta access already granted, allow
     if request.session.get("beta_access_granted"):
         return None
 
-    # Redirect to beta-access page instead of showing 403
-    return redirect("submit_beta_code")
-
-
+    return render(
+        request,
+        "schema_mapper/beta_access.html",
+        status=403
+    )
 
 
 # ---------------- Views ----------------
@@ -595,23 +595,26 @@ def extract_and_validate_zip(zip_path, extract_to):
 
 @csrf_exempt
 def submit_beta_code(request):
-    # Check POST or GET for a beta code
-    code = request.POST.get("beta_code", "").strip() or request.GET.get("code", "").strip()
+    if request.method != "POST":
+        return render(request, "schema_mapper/beta_access.html")
+
+    code = request.POST.get("beta_code", "").strip()
     valid_codes = getattr(settings, "BETA_ACCESS_CODES", set())
 
     if code in valid_codes:
+        # Grant access
         request.session["beta_access_granted"] = True
         request.session.modified = True
-        return redirect("index")
 
-    # If invalid or no code, render form
+        # IMPORTANT: redirect using URL path, not name
+        return redirect("/")
+
     return render(
         request,
         "schema_mapper/beta_access.html",
-        {"error": "Invalid beta access code"} if code else {},
-        status=403 if code else 200
+        {"error": "Invalid beta access code"},
+        status=403
     )
-
 
 # import os
 # import json
