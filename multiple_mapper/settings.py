@@ -36,15 +36,16 @@ INSTALLED_APPS = [
     'schema_mapper',
 ]
 
-# MIDDLEWARE = [
-#     'django.middleware.security.SecurityMiddleware',
-#     'django.contrib.sessions.middleware.SessionMiddleware',
-#     'django.middleware.common.CommonMiddleware',
-#     'django.middleware.csrf.CsrfViewMiddleware',
-#     'django.contrib.auth.middleware.AuthenticationMiddleware',
-#     'django.contrib.messages.middleware.MessageMiddleware',
-#     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-# ]
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
 
 ROOT_URLCONF = 'multiple_mapper.urls'
 
@@ -135,8 +136,13 @@ TEMPLATES[0]['DIRS'] = [os.path.join(BASE_DIR, 'schema_mapper', 'templates')]
 # Temporary upload directory (ephemeral, safe)
 TEMP_UPLOAD_ROOT = os.path.join(BASE_DIR, "tmp_uploads")
 
+
+
 # Ensure directory exists
 os.makedirs(TEMP_UPLOAD_ROOT, exist_ok=True)
+
+# Sessions
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
 
 # Session expiry (24 hours)
 SESSION_COOKIE_AGE = 60 * 60 * 24  # 24 hours
